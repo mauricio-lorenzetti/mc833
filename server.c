@@ -12,6 +12,14 @@
 #define PROTOCOL 0
 #define PORT 9002
 
+// -------------------------
+//
+// As variáveis foram nomeadas de forma a facilitar o entendimento do código
+// Comentários foram utilizads em todos lugares onde as variáveis não são suficientes
+// para o entendimento do trecho de código em questão
+//
+// -------------------------
+
 typedef struct Movie {
 	int id;
 	char title[MAX];
@@ -262,15 +270,14 @@ void add_filme(client_socket) {
 
 void application_filmes(int client_socket) {
 
-    read_filmes_from_database();
-
-    write_filmes_to_database();
-
     char buff[MAX], prompt_message[MAX] = "";;
     int n;
 
-    // infinite loop for chat
+    // loop principal
+    // mantém aberta a conexão TCP estabelecida
+    // mantém a sessão de acesso à database
     for (;;) {
+        read_filmes_from_database();
         bzero(prompt_message, MAX);
         strcat(prompt_message, "Bem vindo ao Projeto 1 de MC833 1S2022\n");
         strcat(prompt_message, "Selecione uma opção abaixo pelo número correspondente, ou digite \'sair\' para finalizar a aplicação\n\n");
@@ -327,7 +334,7 @@ void application_filmes(int client_socket) {
 
 int main() {
 
-    int server_socket;
+    int server_socket, childpid;
     char server_message[MAX] = "Servidor encontrado.\nIniciando aplicação \"filmes\"\n\n";
 
     server_socket = socket(AF_INET, SOCK_STREAM, PROTOCOL);
@@ -361,20 +368,33 @@ int main() {
         printf("server listening..\n");
     }
 
-    int client_socket;
-    client_socket = accept(server_socket, NULL, NULL);
+    int cnt = 0;
+    while (1) {
 
-    if (client_socket < 0) {
-        printf("server accept failed...\n");
-        return 0;
-    }
-    else {
-        printf("server accepted the client...\n");
-    }
+        int client_socket;
+        client_socket = accept(server_socket, NULL, NULL);
 
-    send(client_socket, server_message, sizeof(server_message), 0);
+        if (client_socket < 0) {
+            printf("connection failed...\n");
+            return 0;
+        }
+        else {
+            printf("connection accepted...\n");
+        }
+ 
+        // Print number of clients
+        // connected till now
+        printf("Clients connected: %d\n\n", ++cnt);
+ 
+        // Creates a child process
+        if ((childpid = fork()) == 0) {
+            
+            send(client_socket, server_message, sizeof(server_message), 0);
     
-    application_filmes(client_socket);
+            application_filmes(client_socket);
+            
+        }
+    }
 
     close(server_socket);
 
